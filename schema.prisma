@@ -1,0 +1,39 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  username     String   @unique
+  email        String   @unique
+  passwordHash String
+  rating       Int      @default(1000)
+  gamesPlayed  Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  whiteGames   Game[]   @relation("WhitePlayer")
+  blackGames   Game[]   @relation("BlackPlayer")
+}
+
+model Game {
+  id                 String   @id @default(cuid())
+  whiteId            String
+  blackId            String
+  white               User     @relation("WhitePlayer", fields: [whiteId], references: [id])
+  black               User     @relation("BlackPlayer", fields: [blackId], references: [id])
+  result              String?
+  pgn                 String   @default("")
+  finalFen            String   @default("start")
+  whiteRatingBefore   Int
+  blackRatingBefore   Int
+  whiteRatingChange   Int      @default(0)
+  blackRatingChange   Int      @default(0)
+  status              String   @default("active")
+  createdAt           DateTime @default(now())
+  finishedAt          DateTime?
+}
