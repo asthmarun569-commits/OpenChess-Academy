@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#101827">
+<title>OpenChess Academy — Echo Bot</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+<style>
+:root{color-scheme:dark;--bg:#0b1220;--panel:#111c2f;--line:#26364f;--text:#eef3fb;--muted:#a8b5c9;--accent:#65c7a5;--light:#e8edf3;--dark:#6b8794;--last:#c6d95b}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:16px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+header{padding:18px max(16px,calc((100vw - 1100px)/2));border-bottom:1px solid var(--line);background:#0e1727}
+h1{font-size:clamp(1.3rem,3vw,1.8rem);margin:0 0 4px}header p{margin:0;color:var(--muted);font-size:.92rem}
+main{max-width:1100px;margin:0 auto;padding:18px;display:grid;grid-template-columns:minmax(280px,620px) minmax(260px,1fr);gap:18px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;min-width:0}
+.board{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));width:100%;aspect-ratio:1;border:2px solid #34465d;border-radius:4px;overflow:hidden;touch-action:manipulation}
+.square{border:0;border-radius:0;min-width:0;aspect-ratio:1;padding:0;display:flex;align-items:center;justify-content:center;position:relative;font-size:clamp(1.55rem,5.8vw,3.4rem);line-height:1;cursor:pointer;color:#101820}
+.square.light{background:var(--light)}.square.dark{background:var(--dark)}.square.selected{box-shadow:inset 0 0 0 4px var(--accent)}.square.last{background:var(--last)}
+.square:disabled{cursor:default;opacity:1}.piece.white{color:#fff;text-shadow:-1px -1px 0 #202833,1px -1px 0 #202833,-1px 1px 0 #202833,1px 1px 0 #202833,0 2px 3px #111}.piece.black{color:#18202b;text-shadow:0 1px 0 #fff8}
+.coord{position:absolute;font-size:clamp(.48rem,1.4vw,.7rem);font-weight:700;left:3px;top:2px;color:#17202b;opacity:.75}
+.status{padding:10px 12px;background:#0b1524;border:1px solid var(--line);border-radius:9px;margin:12px 0;min-height:44px}
+.engine{font-size:.9rem;color:var(--muted);margin:8px 0 12px;overflow-wrap:anywhere}
+.controls{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+button,select{font:inherit}button.action,select{background:#1b2a40;border:1px solid #3b506c;color:var(--text);padding:9px 11px;border-radius:8px}
+button.action{cursor:pointer}button.action.primary{background:#17684f;border-color:#258a69}button.action:disabled,select:disabled{opacity:.45;cursor:not-allowed}
+label{display:block;color:var(--muted);font-size:.9rem;margin:8px 0 5px}
+.moves{max-height:290px;overflow:auto;background:#0b1524;border:1px solid var(--line);border-radius:8px;padding:10px;font-variant-numeric:tabular-nums;white-space:pre-wrap;overflow-wrap:anywhere}
+.note{font-size:.82rem;color:var(--muted)}.promotion{display:none;gap:8px;flex-wrap:wrap;margin:10px 0}.promotion.show{display:flex}.promotion button{font-size:1.7rem;min-width:48px}
+@media(max-width:760px){main{grid-template-columns:1fr;padding:12px;gap:12px}.panel{padding:10px}.board{max-width:620px;margin:auto}.moves{max-height:180px}}
+</style>
+</head>
+<body>
+<header><h1>OpenChess Academy</h1><p>Play White against Echo Bot — an original JavaScript chess engine.</p></header>
+<main>
+<section class="panel" aria-label="Chess board">
+  <div id="board" class="board" role="group" aria-label="Chessboard"></div>
+  <div id="status" class="status" aria-live="polite">Loading chess interface…</div>
+  <div id="engineStatus" class="engine">Echo Bot: starting…</div>
+  <div class="controls">
+    <button id="undo" class="action">Undo turn</button><button id="restart" class="action primary">New game</button>
+    <button id="flip" class="action">Flip board</button><button id="copyPgn" class="action">Copy PGN</button>
+  </div>
+  <div class="controls"><label for="depth" style="margin:0;align-self:center">Bot difficulty</label>
+    <select id="depth"><option value="1">Beginner</option><option value="2">Casual</option><option value="3" selected>Club</option><option value="4">Strong</option><option value="5">Advanced</option></select>
+  </div>
+  <div id="promotion" class="promotion" aria-label="Choose promotion"><span style="align-self:center;color:var(--muted)">Promote to:</span>
+    <button class="action" data-piece="q" aria-label="Queen">♕</button><button class="action" data-piece="r" aria-label="Rook">♖</button>
+    <button class="action" data-piece="b" aria-label="Bishop">♗</button><button class="action" data-piece="n" aria-label="Knight">♘</button>
+  </div>
+</section>
+<aside class="panel">
+  <h2 style="margin:0 0 8px;font-size:1.15rem">Echo Bot</h2>
+  <p style="margin:0 0 10px;color:var(--muted)">An original JavaScript engine using alpha-beta search, iterative deepening, quiescence search, a transposition table, and positional evaluation.</p>
+  <p id="turnInfo" style="margin:0 0 10px">White to move</p>
+  <label>Move history</label><div id="moves" class="moves">No moves yet.</div>
+  <p class="note">Difficulty adjusts search depth and a practical time/node budget. Echo Bot is an independent prototype; its playing strength has not yet been benchmarked against Stockfish or other established engines.</p>
+</aside>
+</main>
+<script>
+(() => {
+"use strict";
+if(typeof Chess==="undefined"){document.getElementById("status").textContent="Could not load chess.js. Check your internet connection and reload.";return;}
+const game=new Chess(), boardEl=document.getElementById("board"), statusEl=document.getElementById("status"), engineStatusEl=document.getElementById("engineStatus"), turnInfoEl=document.getElementById("turnInfo"), movesEl=document.getElementById("moves"), undoBtn=document.getElementById("undo"), restartBtn=document.getElementById("restart"), flipBtn=document.getElementById("flip"), copyPgnBtn=document.getElementById("copyPgn"), depthSelect=document.getElementById("depth"), promotionEl=document.getElementById("promotion");
+const glyphs={wk:"♔",wq:"♕",wr:"♖",wb:"♗",wn:"♘",wp:"♙",bk:"♚",bq:"♛",br:"♜",bb:"♝",bn:"♞",bp:"♟"};
+let selected=null,legalTargets=[],flipped=false,worker=null,engineReady=false,engineBusy=false,engineFailed=false,pendingSearch=false,promotionFrom=null,promotionTo=null,searchId=0;
+function setEngineStatus(s){engineStatusEl.textContent="Echo Bot: "+s;}
+function setBusy(b){engineBusy=b;undoBtn.disabled=b||game.history().length===0;restartBtn.disabled=b;flipBtn.disabled=b;depthSelect.disabled=b;}
+function gameOverMessage(){if(game.in_checkmate())return "Checkmate — "+(game.turn()==="w"?"Black":"White")+" wins.";if(game.in_stalemate())return "Draw by stalemate.";if(game.in_threefold_repetition())return "Draw by threefold repetition.";if(game.insufficient_material())return "Draw by insufficient material.";if(game.in_draw())return "Draw.";return "";}
+function updateStatus(){const over=gameOverMessage();statusEl.textContent=over||(game.turn()==="w"?"White":"Echo Bot")+" to move"+(game.in_check()?" — check!":"");turnInfoEl.textContent=game.game_over()?"Game finished":game.turn()==="w"?"White to move":"Echo Bot to move";const h=game.history();movesEl.textContent=h.length?h.reduce((s,m,i)=>s+(i%2===0?(Math.floor(i/2)+1)+". ":"")+m+(i%2===0?" ":"\n"),""):"No moves yet.";undoBtn.disabled=engineBusy||!h.length;}
+function squares(){const files=flipped?"hgfedcba":"abcdefgh",ranks=flipped?"12345678":"87654321",out=[];for(const r of ranks)for(const f of files)out.push(f+r);return out;}
+function renderBoard(){boardEl.textContent="";const targets=new Set(legalTargets),h=game.history({verbose:true}),last=h.length?h[h.length-1]:null;for(const s of squares()){const fi=s.charCodeAt(0)-97,rank=Number(s[1]),b=document.createElement("button");b.type="button";b.className="square "+(((fi+rank)%2===0)?"light":"dark");if(s===selected)b.classList.add("selected");if(last&&(s===last.from||s===last.to))b.classList.add("last");b.setAttribute("aria-label",s);const p=game.get(s);if(p){const sp=document.createElement("span");sp.className="piece "+(p.color==="w"?"white":"black");sp.textContent=glyphs[p.color+p.type];b.appendChild(sp);}if(targets.has(s)){const dot=document.createElement("span");dot.style.cssText="position:absolute;width:23%;height:23%;border-radius:50%;background:#183d34aa;pointer-events:none";b.appendChild(dot);}if((!flipped&&fi===0)||(flipped&&fi===7)){const c=document.createElement("span");c.className="coord";c.textContent=s[1];b.appendChild(c);}b.disabled=engineBusy||!engineReady||engineFailed||game.game_over()||game.turn()!=="w";b.addEventListener("click",()=>onSquareClick(s));boardEl.appendChild(b);}updateStatus();}
+function selectSquare(s){selected=s;legalTargets=game.moves({square:s,verbose:true}).map(m=>m.to);renderBoard();}
+function onSquareClick(s){if(engineBusy||!engineReady||game.game_over()||game.turn()!=="w")return;const p=game.get(s);if(selected&&legalTargets.includes(s)){const moving=game.get(selected);if(moving&&moving.type==="p"&&(s[1]==="8"||s[1]==="1")){promotionFrom=selected;promotionTo=s;promotionEl.classList.add("show");return;}makeHumanMove(selected,s);return;}if(p&&p.color==="w")selectSquare(s);else{selected=null;legalTargets=[];renderBoard();}}
+function makeHumanMove(from,to,promo){let move=null;try{move=game.move({from,to,promotion:promo||"q"});}catch(_){}selected=null;legalTargets=[];promotionEl.classList.remove("show");if(!move){renderBoard();return;}renderBoard();if(!game.game_over())requestBotMove();}
+promotionEl.querySelectorAll("button[data-piece]").forEach(b=>b.addEventListener("click",()=>{if(promotionFrom&&promotionTo)makeHumanMove(promotionFrom,promotionTo,b.dataset.piece);promotionFrom=promotionTo=null;}));
+function requestBotMove(){if(!worker||!engineReady||game.game_over()||game.turn()!=="b"||engineFailed)return;setBusy(true);pendingSearch=true;const id=++searchId;setEngineStatus("thinking (depth "+depthSelect.value+")…");const level=Number(depthSelect.value);const budgets={1:{maxDepth:2,timeMs:250,nodeLimit:25000},2:{maxDepth:3,timeMs:450,nodeLimit:60000},3:{maxDepth:4,timeMs:800,nodeLimit:150000},4:{maxDepth:5,timeMs:1400,nodeLimit:300000},5:{maxDepth:6,timeMs:2200,nodeLimit:500000}};worker.postMessage(Object.assign({type:"search",fen:game.fen(),id},budgets[level]||budgets[3]));}
+function startEngine(){try{worker=new Worker("./echo-bot.js");worker.onmessage=e=>{const d=e.data||{};if(d.type==="ready"){engineReady=true;engineFailed=false;setEngineStatus("ready");renderBoard();return;}if(d.type==="info"){if(engineBusy)setEngineStatus("thinking — depth "+d.depth+(d.nodes!==undefined?", "+d.nodes.toLocaleString()+" nodes":"")+(d.timeMs!==undefined?", "+(d.timeMs/1000).toFixed(1)+"s":""));return;}if(d.type==="bestmove"){if(!pendingSearch||d.id!==searchId)return;pendingSearch=false;const u=d.move;if(u&&u!=="(none)"&&!game.game_over()&&game.turn()==="b"){let move=null;try{move=game.move({from:u.slice(0,2),to:u.slice(2,4),promotion:u[4]||"q"});}catch(_){}if(!move){setEngineStatus("returned an invalid move — please report this issue");}else setEngineStatus("ready");}setBusy(false);renderBoard();return;}if(d.type==="error"){engineFailed=true;engineReady=false;pendingSearch=false;setBusy(false);setEngineStatus("error: "+d.message);statusEl.textContent="Echo Bot failed to start. Check that echo-bot.js is beside index.html.";renderBoard();}};worker.onerror=e=>{engineFailed=true;engineReady=false;pendingSearch=false;setBusy(false);setEngineStatus("worker error");statusEl.textContent="Could not start Echo Bot. Check that echo-bot.js is in the published folder.";renderBoard();};setEngineStatus("loading engine…");worker.postMessage({type:"init"});}catch(e){engineFailed=true;setEngineStatus("could not start: "+e.message);}}
+undoBtn.addEventListener("click",()=>{if(engineBusy||!game.history().length)return;searchId++;pendingSearch=false;game.undo();if(game.turn()==="b"&&game.history().length)game.undo();selected=null;legalTargets=[];promotionEl.classList.remove("show");renderBoard();});
+restartBtn.addEventListener("click",()=>{if(engineBusy)return;searchId++;pendingSearch=false;game.reset();selected=null;legalTargets=[];promotionEl.classList.remove("show");renderBoard();});
+flipBtn.addEventListener("click",()=>{flipped=!flipped;renderBoard();});
+copyPgnBtn.addEventListener("click",async()=>{try{await navigator.clipboard.writeText(game.pgn());copyPgnBtn.textContent="PGN copied";setTimeout(()=>copyPgnBtn.textContent="Copy PGN",1500);}catch(_){const t=document.createElement("textarea");t.value=game.pgn();document.body.appendChild(t);t.select();const ok=document.execCommand("copy");t.remove();copyPgnBtn.textContent=ok?"PGN copied":"Copy failed";setTimeout(()=>copyPgnBtn.textContent="Copy PGN",1500);}});
+renderBoard();startEngine();
+})();
+</script>
+</body></html>
