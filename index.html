@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#101827">
+<title>OpenChess Academy — Echo Bot Live Knowledge Base v1.2</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+<style>
+:root{color-scheme:dark;--bg:#0b1220;--panel:#111c2f;--line:#26364f;--text:#eef3fb;--muted:#a8b5c9;--accent:#65c7a5;--light:#e8edf3;--dark:#6b8794;--last:#c6d95b}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:16px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+header{padding:18px max(16px,calc((100vw - 1100px)/2));border-bottom:1px solid var(--line);background:#0e1727}
+h1{font-size:clamp(1.3rem,3vw,1.8rem);margin:0 0 4px}header p{margin:0;color:var(--muted);font-size:.92rem}
+main{max-width:1100px;margin:0 auto;padding:18px;display:grid;grid-template-columns:minmax(280px,620px) minmax(260px,1fr);gap:18px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;min-width:0}
+.board{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));width:100%;aspect-ratio:1;border:2px solid #34465d;border-radius:4px;overflow:hidden;touch-action:manipulation}
+.square{border:0;border-radius:0;min-width:0;aspect-ratio:1;padding:0;display:flex;align-items:center;justify-content:center;position:relative;font-size:clamp(1.55rem,5.8vw,3.4rem);line-height:1;cursor:pointer;color:#101820}
+.square.light{background:var(--light)}.square.dark{background:var(--dark)}.square.selected{box-shadow:inset 0 0 0 4px var(--accent)}.square.last{background:var(--last)}
+.square:disabled{cursor:default;opacity:1}.piece.white{color:#fff;text-shadow:-1px -1px 0 #202833,1px -1px 0 #202833,-1px 1px 0 #202833,1px 1px 0 #202833,0 2px 3px #111}.piece.black{color:#18202b;text-shadow:0 1px 0 #fff8}
+.coord{position:absolute;font-size:clamp(.48rem,1.4vw,.7rem);font-weight:700;left:3px;top:2px;color:#17202b;opacity:.75}
+.status{padding:10px 12px;background:#0b1524;border:1px solid var(--line);border-radius:9px;margin:12px 0;min-height:44px}
+.engine{font-size:.9rem;color:var(--muted);margin:8px 0 12px;overflow-wrap:anywhere}
+.controls{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+button,select{font:inherit}button.action,select{background:#1b2a40;border:1px solid #3b506c;color:var(--text);padding:9px 11px;border-radius:8px}
+button.action{cursor:pointer}button.action.primary{background:#17684f;border-color:#258a69}button.action:disabled,select:disabled{opacity:.45;cursor:not-allowed}
+label{display:block;color:var(--muted);font-size:.9rem;margin:8px 0 5px}
+.moves{max-height:290px;overflow:auto;background:#0b1524;border:1px solid var(--line);border-radius:8px;padding:10px;font-variant-numeric:tabular-nums;white-space:pre-wrap;overflow-wrap:anywhere}
+.note{font-size:.82rem;color:var(--muted)}.profile-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.profile-box{background:#0b1524;border:1px solid var(--line);border-radius:8px;padding:10px}.profile-value{font-size:1.05rem;font-weight:750;color:var(--accent)}input[type=number]{width:100%;background:#0b1524;color:var(--text);border:1px solid #3b506c;border-radius:8px;padding:9px}.accuracy-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.accuracy-card{background:#0b1524;border:1px solid var(--line);border-radius:8px;padding:10px}.accuracy-value{font-size:1.55rem;font-weight:750;color:var(--accent)}.promotion{display:none;gap:8px;flex-wrap:wrap;margin:10px 0}.promotion.show{display:flex}.promotion button{font-size:1.7rem;min-width:48px}
+
+[hidden]{display:none!important}.section-nav{max-width:1100px;margin:16px auto 0;padding:0 18px;display:flex;gap:10px}.section-tab{flex:1;background:#111c2f;border:1px solid #34465d;color:var(--muted);padding:12px 14px;border-radius:10px;font-weight:750;cursor:pointer}.section-tab.active{background:#17684f;border-color:#258a69;color:#fff}.section-heading{margin:0 0 4px;font-size:1.15rem}.learning-section{max-width:1100px;margin:18px auto;padding:0 18px 24px}.learning-intro{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:14px}.learning-intro h2{margin:0 0 6px}.learning-intro p{margin:0;color:var(--muted)}.lesson-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.lesson-card,.data-library{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;min-width:0}.lesson-number{color:var(--accent);font-weight:800;font-size:.75rem;letter-spacing:.08em}.lesson-card h3{margin:6px 0;font-size:1.15rem}.lesson-summary{color:var(--muted);margin:0 0 10px}.lesson-card li{margin:6px 0}.lesson-task{background:#0b1524;border:1px solid var(--line);border-radius:9px;padding:10px;margin:12px 0}.lesson-task p{margin:5px 0 0;color:var(--muted)}.resource-link{display:block;margin-top:8px;color:#8fe0c2;text-decoration:none}.resource-link:hover{text-decoration:underline}.puzzle-panel{border-top:1px solid var(--line);margin-top:14px;padding-top:12px}.data-library{margin-top:14px}.data-library h3{margin:0 0 12px}.data-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.data-card{background:#0b1524;border:1px solid var(--line);border-radius:9px;padding:12px}.data-card p{margin:6px 0}.data-library a{color:#8fe0c2}.knowledge-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.knowledge-card{background:#0b1524;border:1px solid var(--line);border-radius:10px;padding:12px;min-width:0}.knowledge-card h3{margin:0 0 8px;font-size:1rem}.knowledge-card p{margin:6px 0}.knowledge-table{width:100%;border-collapse:collapse;font-size:.88rem}.knowledge-table th,.knowledge-table td{text-align:left;padding:7px;border-bottom:1px solid var(--line);vertical-align:top}.knowledge-table th{color:var(--muted)}.knowledge-list{padding-left:18px}.knowledge-list li{margin:6px 0}.knowledge-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.knowledge-actions button{background:#1b2a40;border:1px solid #3b506c;color:var(--text);padding:9px 11px;border-radius:8px;cursor:pointer}.knowledge-card a{color:#8fe0c2}.knowledge-muted{color:var(--muted);font-size:.82rem}.knowledge-section{max-width:1100px;margin:18px auto;padding:0 18px 24px}.knowledge-intro{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:14px}.knowledge-intro h2{margin:0 0 6px}.knowledge-intro p{margin:0;color:var(--muted)}
+@media(max-width:760px){.section-nav{padding:0 12px}.section-tab{font-size:.9rem;padding:10px 8px}.learning-section{padding:0 12px 18px}.lesson-grid,.data-grid,.knowledge-grid{grid-template-columns:1fr}.knowledge-section{padding:0 12px 18px}.lesson-card,.data-library{padding:12px}}
+
+@media(max-width:760px){main{grid-template-columns:1fr;padding:12px;gap:12px}.panel{padding:10px}.board{max-width:620px;margin:auto}.moves{max-height:180px}}
+</style>
+</head>
+<body>
+<header><h1>OpenChess Academy</h1><p>Play, study, and improve. Custom one-versus-one games and guided chess lessons are now separate sections.</p></header>
+<nav class="section-nav" aria-label="Main sections">
+  <button id="customPlayTab" class="section-tab active" type="button" aria-controls="customPlaySection" aria-selected="true">Custom Play · 1 vs 1</button>
+  <button id="learningTab" class="section-tab" type="button" aria-controls="learningSection" aria-selected="false">Chess Learning Lessons</button>
+  <button id="knowledgeTab" class="section-tab" type="button" aria-controls="knowledgeSection" aria-selected="false">Live Knowledge Base</button>
+</nav>
+<main id="customPlaySection" class="app-section">
+<section class="panel" aria-label="Custom one-versus-one chess game">
+  <h2 class="section-heading">Custom Play · 1 vs 1</h2>
+  <p class="note">Play as White or Black against Echo Bot. Choose the difficulty and enter an opponent profile for your own records.</p>
+  <div id="board" class="board" role="group" aria-label="Chessboard"></div>
+  <div id="status" class="status" aria-live="polite">Loading chess interface…</div>
+  <div id="engineStatus" class="engine">Echo Bot: starting…</div>
+  <div class="controls">
+    <button id="undo" class="action">Undo turn</button><button id="restart" class="action primary">New game</button>
+    <button id="flip" class="action">Flip board</button><button id="copyPgn" class="action">Copy PGN</button>
+  </div>
+  <div class="controls"><label for="depth" style="margin:0;align-self:center">Bot difficulty</label>
+    <select id="depth"><option value="1">Beginner</option><option value="2">Casual</option><option value="3" selected>Club</option><option value="4">Strong</option><option value="5">Advanced</option></select>
+  </div>
+  <div id="promotion" class="promotion" aria-label="Choose promotion"><span style="align-self:center;color:var(--muted)">Promote to:</span>
+    <button class="action" data-piece="q" aria-label="Queen">♕</button><button class="action" data-piece="r" aria-label="Rook">♖</button>
+    <button class="action" data-piece="b" aria-label="Bishop">♗</button><button class="action" data-piece="n" aria-label="Knight">♘</button>
+  </div>
+</section>
+<aside class="panel">
+  <h2 style="margin:0 0 8px;font-size:1.15rem">Echo Bot</h2>
+  <p style="margin:0 0 10px;color:var(--muted)">An independent JavaScript engine. Choose either color: at Advanced level it searches for its strongest available continuation within its configured limits and moves automatically when it is the engine side.</p>
+  <p id="turnInfo" style="margin:0 0 10px">White to move</p>
+  <h3 style="margin:12px 0 6px;font-size:1rem">Opponent profile</h3>
+  <div class="profile-grid">
+    <div class="profile-box"><label for="opponentName">Opponent name</label><input id="opponentName" type="text" maxlength="32" placeholder="Opponent" value="Opponent"></div>
+    <div class="profile-box"><label for="opponentElo">Opponent rating (Elo)</label><input id="opponentElo" type="number" min="100" max="4000" step="25" value="1200" inputmode="numeric"></div>
+  </div>
+  <div class="profile-grid" style="margin-top:8px">
+    <div class="profile-box"><label for="humanColor">Play as</label><select id="humanColor"><option value="w" selected>White</option><option value="b">Black</option></select></div>
+    <div class="profile-box"><div class="note">Profile status</div><div id="opponentRatingLabel" class="profile-value">1200 Elo</div><div class="note">User-entered, not verified</div></div>
+  </div>
+  <p class="note">The rating is supplied by you; Echo Bot does not independently know or verify an opponent's Elo. One game is not enough to reliably estimate a new rating.</p>
+  <label>Predicted continuation (principal variation)</label><div id="pv" class="moves" aria-live="polite">Waiting for engine analysis.</div>
+  <label>Move history</label><div id="moves" class="moves">No moves yet.</div>
+  <label>Game accuracy estimate</label>
+  <div class="accuracy-grid"><div class="accuracy-card"><div class="note">White accuracy</div><div id="whiteAccuracy" class="accuracy-value">—</div></div><div class="accuracy-card"><div class="note">Black accuracy</div><div id="blackAccuracy" class="accuracy-value">—</div></div></div>
+  <div class="controls"><button id="analyzeAccuracy" class="action">Analyze move accuracy</button></div>
+  <p id="accuracyStatus" class="note">Run analysis after making moves. This is an Echo Bot estimate, not an official Chess.com accuracy score or Elo rating.</p>
+  <p class="note">Free analysis is available without an account or payment in this prototype. Engine moves are generated by search, not a guarantee of victory. No verified engine Elo is claimed.</p>
+</aside>
+</main>
+
+<section id="learningSection" class="learning-section" hidden aria-labelledby="learningTitle">
+  <div class="learning-intro">
+    <h2 id="learningTitle">Chess Learning Lessons</h2>
+    <p>Study opening principles, tactical patterns, and endgame technique separately from your custom games. These original summaries are learning prompts, not a replacement for a full course.</p>
+  </div>
+  <div class="lesson-grid">
+    <article class="lesson-card">
+      <div class="lesson-number">LESSON 01 · BEGINNER</div>
+      <h3>Opening principles</h3>
+      <p class="lesson-summary">Build a sound position before launching an attack.</p>
+      <ol><li>Fight for the centre with pawns and pieces.</li><li>Develop knights and bishops toward useful squares.</li><li>Castle to help protect your king.</li><li>Avoid moving the same piece repeatedly without a reason.</li><li>Before every move, check whether a piece is hanging.</li></ol>
+      <div class="lesson-task"><strong>Practice task</strong><p>Play a short opening and try to develop both knights and bishops while keeping your king safe.</p></div>
+      <a class="resource-link" href="https://www.chess.com/lessons/opening-principles" target="_blank" rel="noopener noreferrer">Continue with Chess.com opening lessons ↗</a>
+      <a class="resource-link" href="https://worldchess.com/chess-terms/openings" target="_blank" rel="noopener noreferrer">Read the World Chess opening guide ↗</a>
+    </article>
+    <article class="lesson-card">
+      <div class="lesson-number">LESSON 02 · TACTICS</div>
+      <h3>Spot tactical opportunities</h3>
+      <p class="lesson-summary">Look for forcing moves before choosing a quiet plan.</p>
+      <ul><li><strong>Fork:</strong> one piece attacks two or more targets.</li><li><strong>Pin:</strong> a piece cannot safely move because a more valuable target is behind it.</li><li><strong>Skewer:</strong> a valuable piece moves and exposes another target.</li><li><strong>Discovered attack:</strong> moving one piece opens an attack from another.</li><li><strong>Mate threat:</strong> calculate checks, escapes, and defensive replies.</li></ul>
+      <div class="lesson-task"><strong>Practice task</strong><p>For each candidate move, ask: checks first, captures second, threats third. Then look for the opponent's strongest reply.</p></div>
+      <a class="resource-link" href="https://www.chess.com/lessons/tactics" target="_blank" rel="noopener noreferrer">Study tactics on Chess.com ↗</a>
+      <div class="puzzle-panel"><strong>Daily tactics practice</strong><p id="puzzleDataStatus" class="note" aria-live="polite">Load a free daily tactics puzzle from Lichess for separate practice.</p><div class="controls"><button id="loadPuzzle" class="action" type="button">Load daily tactics puzzle</button></div><div id="puzzleLink" class="note"></div></div>
+    </article>
+    <article class="lesson-card">
+      <div class="lesson-number">LESSON 03 · ENDGAME</div>
+      <h3>Convert an endgame</h3>
+      <p class="lesson-summary">When fewer pieces remain, king activity and pawn promotion become more important.</p>
+      <ul><li>Activate your king rather than leaving it passive.</li><li>Support passed pawns and calculate the promotion race.</li><li>Use rook activity; rooks often belong behind passed pawns.</li><li>Learn opposition and key squares in king-and-pawn endings.</li><li>Do not assume a material advantage always wins; some positions are drawn.</li></ul>
+      <div class="lesson-task"><strong>Practice task</strong><p>Review a king-and-pawn ending and identify whether the defending king can reach the promotion square.</p></div>
+      <a class="resource-link" href="https://shop.chessable.com/products/100-endgame-patterns-you-must-know-new-in-chess" target="_blank" rel="noopener noreferrer">Explore Chessable endgame patterns ↗</a>
+    </article>
+    <article class="lesson-card">
+      <div class="lesson-number">LESSON 04 · STRATEGY</div>
+      <h3>Make a positional plan</h3>
+      <p class="lesson-summary">Improve your worst piece and identify the opponent's weaknesses.</p>
+      <ul><li>Compare king safety and material.</li><li>Look for weak pawns, open files, and outposts.</li><li>Improve your least active piece.</li><li>Consider what your opponent wants to do next.</li><li>Do not launch an attack without enough pieces supporting it.</li></ul>
+      <div class="lesson-task"><strong>Practice task</strong><p>Pause after development and write down one weakness to target and one opponent threat to prevent.</p></div>
+      <a class="resource-link" href="https://worldchess.com/chess-terms/chess-strategy" target="_blank" rel="noopener noreferrer">Read the World Chess strategy guide ↗</a>
+    </article>
+  </div>
+  <section class="data-library" aria-labelledby="dataLibraryTitle">
+    <h3 id="dataLibraryTitle">Live chess data and study tools</h3>
+    <div class="data-grid">
+      <div class="data-card"><strong>Opening explorer</strong><p id="openingDataStatus" class="note" aria-live="polite">Online opening statistics load when Echo Bot is in the opening phase during custom play.</p><p class="note">The explorer uses game statistics as a guide, not proof of the objectively best move.</p></div>
+      <div class="data-card"><strong>Endgame tablebase</strong><p id="endgameDataStatus" class="note" aria-live="polite">For eligible positions with seven or fewer pieces, Echo Bot tries an online tablebase before its own search.</p><p class="note">Tablebase results apply only to covered positions; the service may be unavailable.</p></div>
+    </div>
+    <p class="note">Public data references: <a href="https://lichess.org/api" target="_blank" rel="noopener noreferrer">Lichess API</a> · <a href="https://github.com/lichess-org/chess-openings" target="_blank" rel="noopener noreferrer">Opening-name dataset (CC0)</a> · <a href="https://database.lichess.org/#puzzles" target="_blank" rel="noopener noreferrer">Public puzzle database</a>.</p>
+    <p class="note">Course links are external. This app does not copy paid Chessable course files or proprietary lesson material.</p>
+  </section>
+</section>
+
+<section id="knowledgeSection" class="knowledge-section" hidden aria-labelledby="knowledgeTitle">
+  <div class="knowledge-intro"><h2 id="knowledgeTitle">Live Chess Knowledge Update Base</h2><p>Daily public opening statistics plus a local record of your finished Echo Bot games. The data feed updates through a scheduled GitHub Actions workflow; it does not silently retrain the engine.</p></div>
+  <div class="knowledge-grid">
+    <article class="knowledge-card"><h3>Daily research update</h3><p id="knowledgeUpdated">Waiting for the first scheduled refresh…</p><p id="knowledgeFeedStatus" class="knowledge-muted">The project snapshot is stored in data/chess-knowledge.json.</p><ul id="knowledgeChanges" class="knowledge-list"><li>Daily opening trend changes will appear here.</li></ul></article>
+    <article class="knowledge-card"><h3>Opening trends from master games</h3><div id="openingTrends" class="knowledge-muted">Opening statistics will appear after the first successful update.</div><p class="knowledge-muted">Sample counts and outcomes describe the queried database; they do not prove a move is objectively best.</p></article>
+    <article class="knowledge-card"><h3>Daily tactics</h3><p id="dailyPuzzleSummary" class="knowledge-muted">Daily puzzle metadata will appear after refresh.</p><p><a id="dailyPuzzleUrl" href="https://lichess.org/training/daily" target="_blank" rel="noopener noreferrer">Open today's puzzle</a></p><p class="knowledge-muted">The solution is not shown here.</p></article>
+  </div>
+  <h3>Your games and learning progression</h3>
+  <div class="knowledge-grid">
+    <article class="knowledge-card"><h3>Personal game record</h3><p id="personalProgress">No completed games recorded on this device yet.</p><p class="knowledge-muted">Completed games are stored in this browser only. They are not uploaded to GitHub or shared across devices.</p><div class="knowledge-actions"><button type="button" id="exportPersonalGames">Export PGNs</button><button type="button" id="clearPersonalGames">Clear local record</button></div></article>
+    <article class="knowledge-card"><h3>Recommended study focus</h3><p id="learningFocus">Begin with opening principles: central control, development, and king safety.</p><p class="knowledge-muted">This is a transparent study heuristic based on saved game count and results—not a full move-by-move diagnosis.</p></article>
+    <article class="knowledge-card"><h3>Update policy</h3><ul class="knowledge-list"><li>Scheduled job runs daily and can also be run manually in GitHub Actions.</li><li>It records aggregate Lichess master-opening statistics and daily puzzle metadata.</li><li>Your finished games inform your on-device study recommendation.</li><li>Engine evaluation changes require separate code changes and regression tests.</li></ul><p><a href="https://database.lichess.org/" target="_blank" rel="noopener noreferrer">Lichess public databases</a> · <a href="https://lichess.org/api" target="_blank" rel="noopener noreferrer">API documentation</a></p></article>
+  </div>
+</section>
+<script>
+(() => {
+"use strict";
+if(typeof Chess==="undefined"){document.getElementById("status").textContent="Could not load chess.js. Check your internet connection and reload.";return;}
+const game=new Chess(), boardEl=document.getElementById("board"), statusEl=document.getElementById("status"), engineStatusEl=document.getElementById("engineStatus"), turnInfoEl=document.getElementById("turnInfo"), movesEl=document.getElementById("moves"), undoBtn=document.getElementById("undo"), restartBtn=document.getElementById("restart"), flipBtn=document.getElementById("flip"), copyPgnBtn=document.getElementById("copyPgn"), depthSelect=document.getElementById("depth"), promotionEl=document.getElementById("promotion");
+const humanColorSelect=document.getElementById("humanColor"), opponentNameInput=document.getElementById("opponentName"), opponentEloInput=document.getElementById("opponentElo"), opponentRatingLabel=document.getElementById("opponentRatingLabel");
+const pvEl=document.getElementById("pv"), whiteAccuracyEl=document.getElementById("whiteAccuracy"), blackAccuracyEl=document.getElementById("blackAccuracy"), analyzeAccuracyBtn=document.getElementById("analyzeAccuracy"), accuracyStatusEl=document.getElementById("accuracyStatus");
+const openingDataStatus=document.getElementById("openingDataStatus"), endgameDataStatus=document.getElementById("endgameDataStatus"), puzzleDataStatus=document.getElementById("puzzleDataStatus"), puzzleLink=document.getElementById("puzzleLink"), loadPuzzleBtn=document.getElementById("loadPuzzle");
+const glyphs={wk:"♔",wq:"♕",wr:"♖",wb:"♗",wn:"♘",wp:"♙",bk:"♚",bq:"♛",br:"♜",bb:"♝",bn:"♞",bp:"♟"};
+let selected=null,legalTargets=[],flipped=false,worker=null,engineReady=false,engineBusy=false,engineFailed=false,pendingSearch=false,promotionFrom=null,promotionTo=null,searchId=0,analysisRunning=false,analysisRequestId=0,analysisMoves=[],analysisIndex=0,analysisScores={w:[],b:[]},humanColor="w";
+function engineColor(){return humanColor==="w"?"b":"w";}
+function sideName(color){return color===humanColor?(opponentNameInput.value.trim()||"You"):"Echo Bot";}
+function updateOpponentLabel(){const n=opponentNameInput.value.trim()||"Opponent",elo=Number(opponentEloInput.value);opponentRatingLabel.textContent=(elo>=100&&elo<=4000?Math.round(elo):"—")+" Elo";opponentRatingLabel.title=n+" — user-entered rating, not verified";}
+function setEngineStatus(s){engineStatusEl.textContent="Echo Bot: "+s;}
+function setBusy(b){engineBusy=b;undoBtn.disabled=b||game.history().length===0;restartBtn.disabled=b;flipBtn.disabled=b;depthSelect.disabled=b;humanColorSelect.disabled=b;analyzeAccuracyBtn.disabled=b||game.history().length===0;}
+function gameOverMessage(){if(game.in_checkmate())return "Checkmate — "+(game.turn()==="w"?"Black":"White")+" wins.";if(game.in_stalemate())return "Draw by stalemate.";if(game.in_threefold_repetition())return "Draw by threefold repetition.";if(game.insufficient_material())return "Draw by insufficient material.";if(game.in_draw())return "Draw.";return "";}
+function updateStatus(){const over=gameOverMessage();statusEl.textContent=over||(game.turn()===humanColor?(opponentNameInput.value.trim()||"You"):"Echo Bot")+" to move"+(game.in_check()?" — check!":"");turnInfoEl.textContent=game.game_over()?"Game finished":(game.turn()===humanColor?(opponentNameInput.value.trim()||"You"):"Echo Bot")+" to move";const h=game.history();movesEl.textContent=h.length?h.reduce((s,m,i)=>s+(i%2===0?(Math.floor(i/2)+1)+". ":"")+m+(i%2===0?" ":"\n"),""):"No moves yet.";undoBtn.disabled=engineBusy||!h.length;}
+function squares(){const files=flipped?"hgfedcba":"abcdefgh",ranks=flipped?"12345678":"87654321",out=[];for(const r of ranks)for(const f of files)out.push(f+r);return out;}
+function renderBoard(){boardEl.textContent="";const targets=new Set(legalTargets),h=game.history({verbose:true}),last=h.length?h[h.length-1]:null;for(const s of squares()){const fi=s.charCodeAt(0)-97,rank=Number(s[1]),b=document.createElement("button");b.type="button";b.className="square "+(((fi+rank)%2===0)?"light":"dark");if(s===selected)b.classList.add("selected");if(last&&(s===last.from||s===last.to))b.classList.add("last");b.setAttribute("aria-label",s);const p=game.get(s);if(p){const sp=document.createElement("span");sp.className="piece "+(p.color==="w"?"white":"black");sp.textContent=glyphs[p.color+p.type];b.appendChild(sp);}if(targets.has(s)){const dot=document.createElement("span");dot.style.cssText="position:absolute;width:23%;height:23%;border-radius:50%;background:#183d34aa;pointer-events:none";b.appendChild(dot);}if((!flipped&&fi===0)||(flipped&&fi===7)){const c=document.createElement("span");c.className="coord";c.textContent=s[1];b.appendChild(c);}b.disabled=engineBusy||!engineReady||engineFailed||game.game_over()||game.turn()!==humanColor;b.addEventListener("click",()=>onSquareClick(s));boardEl.appendChild(b);}updateStatus();}
+function selectSquare(s){selected=s;legalTargets=game.moves({square:s,verbose:true}).map(m=>m.to);renderBoard();}
+function onSquareClick(s){if(engineBusy||!engineReady||game.game_over()||game.turn()!==humanColor)return;const p=game.get(s);if(selected&&legalTargets.includes(s)){const moving=game.get(selected);if(moving&&moving.type==="p"&&(s[1]==="8"||s[1]==="1")){promotionFrom=selected;promotionTo=s;promotionEl.classList.add("show");return;}makeHumanMove(selected,s);return;}if(p&&p.color===humanColor)selectSquare(s);else{selected=null;legalTargets=[];renderBoard();}}
+function makeHumanMove(from,to,promo){pvEl.textContent="Searching from the new position…";let move=null;try{move=game.move({from,to,promotion:promo||"q"});}catch(_){}selected=null;legalTargets=[];promotionEl.classList.remove("show");if(!move){renderBoard();return;}renderBoard();if(!game.game_over()&&game.turn()===engineColor())requestBotMove();}
+promotionEl.querySelectorAll("button[data-piece]").forEach(b=>b.addEventListener("click",()=>{if(promotionFrom&&promotionTo)makeHumanMove(promotionFrom,promotionTo,b.dataset.piece);promotionFrom=promotionTo=null;}));
+function pieceCount(){return game.board().reduce((n,row)=>n+row.filter(Boolean).length,0);}
+function uciMove(m){return m.from+m.to+(m.promotion||"");}
+async function fetchJsonWithTimeout(url,ms=1600){const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),ms);try{const r=await fetch(url,{signal:controller.signal,headers:{Accept:"application/json"}});if(!r.ok)throw Error("HTTP "+r.status);return await r.json();}finally{clearTimeout(timer);}}
+async function findOpeningBookMove(){
+  if(game.history().length>=20||pieceCount()<12)return null;
+  const url="https://explorer.lichess.ovh/lichess?variant=standard&speeds[]=blitz&speeds[]=rapid&ratings[]=1600&ratings[]=1800&ratings[]=2000&ratings[]=2200&fen="+encodeURIComponent(game.fen());
+  const data=await fetchJsonWithTimeout(url,1400);
+  const moves=Array.isArray(data.moves)?data.moves:[];
+  const legal=new Set(game.moves({verbose:true}).map(uciMove));
+  const candidates=moves.filter(m=>legal.has(m.uci)&&((Number(m.white)||0)+(Number(m.draws)||0)+(Number(m.black)||0))>0);
+  if(!candidates.length)return null;
+  const side=game.turn();
+  candidates.sort((a,b)=>{
+    const score=m=>{const w=Number(m.white)||0,d=Number(m.draws)||0,bl=Number(m.black)||0,total=w+d+bl, wins=side==="w"?w:bl;return 0.78*((wins+0.5*d)/total)+0.22*Math.min(1,Math.log(total+1)/10);};
+    return score(b)-score(a);
+  });
+  const best=candidates[0],total=(Number(best.white)||0)+(Number(best.draws)||0)+(Number(best.black)||0);
+  openingDataStatus.textContent=(data.opening&&data.opening.name?data.opening.name+" · ":"Position found in Lichess opening explorer · ")+"database move "+(best.san||best.uci)+"; "+total.toLocaleString()+" games in this move sample. Statistics guide the choice; they do not prove a move is best.";
+  return best.uci;
+}
+async function findTablebaseMove(){
+  if(pieceCount()>7)return null;
+  const url="https://tablebase.lichess.ovh/standard?fen="+encodeURIComponent(game.fen());
+  const data=await fetchJsonWithTimeout(url,1700);
+  const moves=Array.isArray(data.moves)?data.moves:[];
+  const legal=new Set(game.moves({verbose:true}).map(uciMove));
+  const rank={win:5,"cursed-win":4,draw:3,"blessed-loss":2,loss:1};
+  const candidates=moves.filter(m=>legal.has(m.uci));
+  if(!candidates.length)return null;
+  candidates.sort((a,b)=>{
+    const ra=rank[a.category]||0,rb=rank[b.category]||0;if(ra!==rb)return rb-ra;
+    const da=Math.abs(Number(a.dtz)||0),db=Math.abs(Number(b.dtz)||0);
+    if(ra>=4)return da-db;
+    if(ra<=2)return db-da;
+    return da-db;
+  });
+  const best=candidates[0];
+  endgameDataStatus.textContent="Tablebase result: "+(best.category||"available")+"; selected "+(best.san||best.uci)+(best.dtz!==undefined?" (DTZ "+best.dtz+")":"")+". Applies only to this eligible position.";
+  return best.uci;
+}
+function playExternalMove(uci,source){
+  let move=null;try{move=game.move({from:uci.slice(0,2),to:uci.slice(2,4),promotion:uci[4]||"q"});}catch(_){}
+  if(!move)return false;
+  pendingSearch=false;setEngineStatus(source+" move: "+move.san);pvEl.textContent=source+" recommendation: "+move.san+". The engine's own search resumes outside the database coverage.";setBusy(false);renderBoard();return true;
+}
+async function requestBotMove(){
+  if(!worker||!engineReady||game.game_over()||game.turn()!==engineColor()||engineFailed)return;
+  setBusy(true);pendingSearch=true;const id=++searchId;const level=Number(depthSelect.value);const names={1:"Beginner",2:"Casual",3:"Club",4:"Strong",5:"Advanced"};setEngineStatus("checking chess databases — "+names[level]+"…");
+  // Prefer an online tablebase in eligible endgames; otherwise use opening statistics early in the game.
+  try{
+    if(pieceCount()<=7){const tb=await findTablebaseMove();if(id!==searchId)return;if(tb&&playExternalMove(tb,"Tablebase"))return;}
+    else if(game.history().length<20){const book=await findOpeningBookMove();if(id!==searchId)return;if(book&&playExternalMove(book,"Opening book"))return;}
+  }catch(e){if(pieceCount()<=7)endgameDataStatus.textContent="Online tablebase unavailable; using Echo Bot search instead.";else openingDataStatus.textContent="Opening explorer unavailable; using Echo Bot search instead.";}
+  if(id!==searchId||game.game_over()||game.turn()!==engineColor())return;
+  const budgets={1:{maxDepth:2,timeMs:220,nodeLimit:30000,skillLevel:1},2:{maxDepth:3,timeMs:450,nodeLimit:80000,skillLevel:2},3:{maxDepth:4,timeMs:900,nodeLimit:180000,skillLevel:3},4:{maxDepth:6,timeMs:1800,nodeLimit:400000,skillLevel:4},5:{maxDepth:8,timeMs:4200,nodeLimit:1000000,skillLevel:5}};
+  setEngineStatus("thinking — "+names[level]+"…");worker.postMessage(Object.assign({type:"search",fen:game.fen(),id},budgets[level]||budgets[3]));
+}
+function uciForMove(m){return m.from+m.to+(m.promotion||"");}
+function analyzeAccuracy(){
+  if(engineBusy||!engineReady||!game.history().length)return;
+  const played=game.history({verbose:true}), replay=new Chess();
+  analysisMoves=[];analysisScores={w:[],b:[]};analysisIndex=0;
+  for(const m of played){analysisMoves.push({fen:replay.fen(),uci:uciForMove(m),side:replay.turn(),san:m.san});replay.move({from:m.from,to:m.to,promotion:m.promotion||"q"});}
+  if(!analysisMoves.length)return;
+  analysisRunning=true;pendingSearch=false;setBusy(true);
+  whiteAccuracyEl.textContent="…";blackAccuracyEl.textContent="…";
+  accuracyStatusEl.textContent="Analyzing each move with Echo Bot's search. This may take a while for long games.";
+  runNextAccuracySearch();
+}
+function runNextAccuracySearch(){
+  if(!analysisRunning)return;
+  if(analysisIndex>=analysisMoves.length){finishAccuracyAnalysis();return;}
+  const item=analysisMoves[analysisIndex];
+  analysisRequestId=++searchId;
+  setEngineStatus("analyzing accuracy — move "+(analysisIndex+1)+"/"+analysisMoves.length);
+  worker.postMessage({type:"search",fen:item.fen,id:analysisRequestId,maxDepth:3,timeMs:260,nodeLimit:50000,skillLevel:5});
+}
+function handleAccuracySearchResult(d){
+  const item=analysisMoves[analysisIndex];
+  if(!item){analysisRunning=false;setBusy(false);return;}
+  const rows=Array.isArray(d.rootScores)?d.rootScores:[];
+  const best=rows.reduce((v,x)=>Math.max(v,Number(x.score)||-Infinity),-Infinity);
+  const chosen=rows.find(x=>x.move===item.uci);
+  let pct=chosen&&Number.isFinite(best)?100*Math.exp(-Math.max(0,best-Number(chosen.score))/180):null;
+  // A missing move score means the search did not produce usable analysis for this ply.
+  if(pct!==null)analysisScores[item.side].push(Math.max(0,Math.min(100,pct)));
+  analysisIndex++;
+  accuracyStatusEl.textContent="Analyzed "+analysisIndex+" of "+analysisMoves.length+" moves. Accuracy is an estimate from a limited-depth search.";
+  runNextAccuracySearch();
+}
+function finishAccuracyAnalysis(){
+  analysisRunning=false;setBusy(false);setEngineStatus("ready");
+  const mean=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:null;
+  const w=mean(analysisScores.w),b=mean(analysisScores.b);
+  whiteAccuracyEl.textContent=w===null?"N/A":w.toFixed(1)+"%";
+  blackAccuracyEl.textContent=b===null?"N/A":b.toFixed(1)+"%";
+  accuracyStatusEl.textContent="Free analysis finished for "+(opponentNameInput.value.trim()||"Opponent")+" (entered rating: "+(Number(opponentEloInput.value)>=100&&Number(opponentEloInput.value)<=4000?Math.round(Number(opponentEloInput.value))+" Elo":"not set")+"). White: "+analysisScores.w.length+" moves scored; Black: "+analysisScores.b.length+" moves scored. Accuracy is an Echo Bot estimate, not an official metric or rating.";
+  renderBoard();
+}
+async function loadDailyPuzzle(){loadPuzzleBtn.disabled=true;puzzleDataStatus.textContent="Fetching today's public Lichess puzzle…";puzzleLink.textContent="";try{const data=await fetchJsonWithTimeout("https://lichess.org/api/puzzle/daily",5000);const puzzle=data.puzzle||{},themes=Array.isArray(puzzle.themes)?puzzle.themes:[];puzzleDataStatus.textContent="Puzzle rating: "+(puzzle.rating||"not supplied")+" · themes: "+(themes.length?themes.join(", "):"not supplied")+". Solve it on Lichess to keep the solution hidden.";const a=document.createElement("a");a.href="https://lichess.org/training/"+encodeURIComponent(puzzle.id||"");a.target="_blank";a.rel="noopener noreferrer";a.textContent="Open daily puzzle on Lichess";puzzleLink.replaceChildren(a);}catch(e){puzzleDataStatus.textContent="Could not load the daily puzzle. Check your connection and try again.";}finally{loadPuzzleBtn.disabled=false;}}
+loadPuzzleBtn.addEventListener("click",loadDailyPuzzle);
+analyzeAccuracyBtn.addEventListener("click",analyzeAccuracy);
+function startEngine(){try{worker=new Worker("./echo-bot.js");worker.onmessage=e=>{const d=e.data||{};if(d.type==="ready"){engineReady=true;engineFailed=false;setEngineStatus("ready");renderBoard();if(game.turn()===engineColor())requestBotMove();return;}if(d.type==="info"){if(analysisRunning){accuracyStatusEl.textContent="Analyzing move "+Math.min(analysisIndex+1,analysisMoves.length)+" of "+analysisMoves.length+"…";}if(Array.isArray(d.pv)&&d.pv.length)pvEl.textContent=d.pv.join(" ");if(engineBusy){const names={1:"Beginner",2:"Casual",3:"Club",4:"Strong",5:"Advanced"};setEngineStatus("thinking — "+(names[d.skillLevel]||"Club")+", depth "+d.depth+(d.nodes!==undefined?", "+d.nodes.toLocaleString()+" nodes":"")+(d.timeMs!==undefined?", "+(d.timeMs/1000).toFixed(1)+"s":"")+(Number.isFinite(d.score)?", eval "+(d.score/100).toFixed(2):""));}return;}if(d.type==="bestmove"){if(analysisRunning&&d.id===analysisRequestId){handleAccuracySearchResult(d);return;}if(!pendingSearch||d.id!==searchId)return;pendingSearch=false;const u=d.move;if(u&&u!=="(none)"&&!game.game_over()&&game.turn()===engineColor()){let move=null;try{move=game.move({from:u.slice(0,2),to:u.slice(2,4),promotion:u[4]||"q"});}catch(_){}if(!move){setEngineStatus("returned an invalid move — please report this issue");}else setEngineStatus("ready");}setBusy(false);renderBoard();return;}if(d.type==="error"){engineFailed=true;engineReady=false;pendingSearch=false;setBusy(false);setEngineStatus("error: "+d.message);statusEl.textContent="Echo Bot failed to start. Check that echo-bot.js is beside index.html.";renderBoard();}};worker.onerror=e=>{engineFailed=true;engineReady=false;pendingSearch=false;setBusy(false);setEngineStatus("worker error");statusEl.textContent="Could not start Echo Bot. Check that echo-bot.js is in the published folder.";renderBoard();};setEngineStatus("loading engine…");worker.postMessage({type:"init"});}catch(e){engineFailed=true;setEngineStatus("could not start: "+e.message);}}
+undoBtn.addEventListener("click",()=>{if(engineBusy||!game.history().length)return;searchId++;pendingSearch=false;pvEl.textContent="Waiting for engine analysis.";game.undo();if(game.turn()!==humanColor&&game.history().length)game.undo();selected=null;legalTargets=[];promotionEl.classList.remove("show");renderBoard();});
+restartBtn.addEventListener("click",()=>{if(engineBusy)return;searchId++;pendingSearch=false;pvEl.textContent="Waiting for engine analysis.";game.reset();selected=null;legalTargets=[];promotionEl.classList.remove("show");whiteAccuracyEl.textContent="—";blackAccuracyEl.textContent="—";accuracyStatusEl.textContent="Play a game, then run free analysis.";openingDataStatus.textContent="Online opening statistics load when Echo Bot is in the opening phase.";endgameDataStatus.textContent="For eligible positions with seven or fewer pieces, Echo Bot tries an online tablebase before its own search.";renderBoard();if(engineReady&&game.turn()===engineColor())requestBotMove();});
+flipBtn.addEventListener("click",()=>{flipped=!flipped;renderBoard();});
+copyPgnBtn.addEventListener("click",async()=>{try{await navigator.clipboard.writeText(game.pgn());copyPgnBtn.textContent="PGN copied";setTimeout(()=>copyPgnBtn.textContent="Copy PGN",1500);}catch(_){const t=document.createElement("textarea");t.value=game.pgn();document.body.appendChild(t);t.select();const ok=document.execCommand("copy");t.remove();copyPgnBtn.textContent=ok?"PGN copied":"Copy failed";setTimeout(()=>copyPgnBtn.textContent="Copy PGN",1500);}});
+opponentNameInput.addEventListener("input",()=>{updateOpponentLabel();updateStatus();});
+opponentEloInput.addEventListener("input",updateOpponentLabel);
+humanColorSelect.addEventListener("change",()=>{if(engineBusy)return;humanColor=humanColorSelect.value;searchId++;pendingSearch=false;analysisRunning=false;game.reset();selected=null;legalTargets=[];promotionEl.classList.remove("show");pvEl.textContent="Waiting for engine analysis.";whiteAccuracyEl.textContent="—";blackAccuracyEl.textContent="—";accuracyStatusEl.textContent="Play a game, then run free analysis.";openingDataStatus.textContent="Online opening statistics load when Echo Bot is in the opening phase.";endgameDataStatus.textContent="For eligible positions with seven or fewer pieces, Echo Bot tries an online tablebase before its own search.";renderBoard();if(engineReady&&game.turn()===engineColor())requestBotMove();});
+const customPlayTab=document.getElementById("customPlayTab"),learningTab=document.getElementById("learningTab"),knowledgeTab=document.getElementById("knowledgeTab"),customPlaySection=document.getElementById("customPlaySection"),learningSection=document.getElementById("learningSection"),knowledgeSection=document.getElementById("knowledgeSection");
+function showSection(name){const learning=name==="learning",knowledge=name==="knowledge";customPlaySection.hidden=learning||knowledge;learningSection.hidden=!learning;knowledgeSection.hidden=!knowledge;customPlayTab.classList.toggle("active",!learning&&!knowledge);learningTab.classList.toggle("active",learning);knowledgeTab.classList.toggle("active",knowledge);customPlayTab.setAttribute("aria-selected",String(!learning&&!knowledge));learningTab.setAttribute("aria-selected",String(learning));knowledgeTab.setAttribute("aria-selected",String(knowledge));}
+customPlayTab.addEventListener("click",()=>showSection("play"));learningTab.addEventListener("click",()=>showSection("learning"));knowledgeTab.addEventListener("click",()=>showSection("knowledge"));
+const PERSONAL_GAMES_KEY="openchess.echoBot.completedGames.v1";let lastSavedGameSignature="";
+function readPersonalGames(){try{return JSON.parse(localStorage.getItem(PERSONAL_GAMES_KEY)||"[]");}catch(_){return [];}}
+function writePersonalGames(items){try{localStorage.setItem(PERSONAL_GAMES_KEY,JSON.stringify(items));return true;}catch(_){return false;}}
+function renderPersonalProgress(){const items=readPersonalGames(),wins=items.filter(x=>x.userResult==="win").length,draws=items.filter(x=>x.userResult==="draw").length,losses=items.filter(x=>x.userResult==="loss").length;const p=document.getElementById("personalProgress"),f=document.getElementById("learningFocus");if(p)p.textContent=items.length+" completed games saved · "+wins+" wins · "+draws+" draws · "+losses+" losses";if(f){let t="Opening fundamentals: develop pieces, contest the centre, and castle safely.";if(items.length>=5&&losses>wins)t="Review losses first: look for hanging pieces, missed forcing moves, and king-safety problems.";else if(items.length>=5&&draws>=wins)t="Practise conversion and endgames: king activity, passed pawns, and converting material advantages.";else if(items.length>=5)t="Practise middlegame calculation: checks, captures, threats, candidate moves, and the opponent's strongest reply.";else if(items.length>=2)t="Tactical basics: scan for checks, captures, threats, forks, pins, and undefended pieces.";f.textContent=t;}}
+function trackFinishedGame(){if(!game.game_over()||!game.history().length)return;const pgn=game.pgn();if(!pgn||pgn===lastSavedGameSignature)return;const items=readPersonalGames();const userResult=game.in_checkmate()?(game.turn()!==humanColor?"win":"loss"):"draw";const item={date:new Date().toISOString(),pgn,userResult,opponent:opponentNameInput.value.trim()||"Echo Bot",opponentElo:Number(opponentEloInput.value)||null,side:humanColor==="w"?"White":"Black",termination:gameOverMessage()};items.unshift(item);if(items.length>200)items.length=200;if(writePersonalGames(items))lastSavedGameSignature=pgn;renderPersonalProgress();}
+async function loadKnowledgeBase(){const updated=document.getElementById("knowledgeUpdated"),feed=document.getElementById("knowledgeFeedStatus"),changes=document.getElementById("knowledgeChanges"),trends=document.getElementById("openingTrends"),puzzle=document.getElementById("dailyPuzzleSummary"),puzzleUrl=document.getElementById("dailyPuzzleUrl");try{const r=await fetch("data/chess-knowledge.json?ts="+Date.now(),{cache:"no-store"});if(!r.ok)throw Error("Knowledge snapshot not published yet");const data=await r.json();updated.textContent="Last refresh: "+(data.updatedAt?new Date(data.updatedAt).toLocaleString():"not recorded");feed.textContent=(data.sources||[]).map(x=>x.name).join(" · ")+" · "+((data.positions||[]).length)+" opening positions";changes.replaceChildren();const ul=document.createElement("ul");ul.className="knowledge-list";(data.changes||[]).slice(0,5).forEach(x=>{const li=document.createElement("li");li.textContent=x;ul.appendChild(li);});if(!ul.children.length){const li=document.createElement("li");li.textContent="No leading-move change recorded in this snapshot. Stable database trends are not proof that one move is always best.";ul.appendChild(li);}changes.appendChild(ul);trends.replaceChildren();const table=document.createElement("table");table.className="knowledge-table";const thead=document.createElement("thead");thead.innerHTML="<tr><th>Position</th><th>Top move</th><th>Games</th><th>White / draw / Black</th></tr>";table.appendChild(thead);const tbody=document.createElement("tbody");(data.positions||[]).forEach(pos=>{const m=(pos.moves||[])[0],tr=document.createElement("tr");[pos.label||"Position",m?(m.san||m.uci):"No move data",m?Number(m.games||0).toLocaleString():"—",m?[Math.round(100*(m.white||0))+"%",Math.round(100*(m.draws||0))+"%",Math.round(100*(m.black||0))+"%"].join(" / "):"—"].forEach(v=>{const td=document.createElement("td");td.textContent=v;tr.appendChild(td);});tbody.appendChild(tr);});table.appendChild(tbody);trends.appendChild(table);if(data.puzzle){puzzle.textContent="Puzzle "+(data.puzzle.id||"daily")+" · rating "+(data.puzzle.rating??"not supplied")+" · themes "+((data.puzzle.themes||[]).join(", ")||"not supplied");puzzleUrl.href=data.puzzle.url||"https://lichess.org/training/daily";}else puzzle.textContent="Daily puzzle metadata is not available yet.";}catch(e){updated.textContent="Waiting for first published snapshot";feed.textContent="The scheduled updater must run once after publication. "+e.message;}}
+document.getElementById("exportPersonalGames").addEventListener("click",()=>{const items=readPersonalGames();if(!items.length){alert("No completed games saved yet.");return;}const blob=new Blob([items.map(x=>x.pgn).join("\n\n")+"\n"],{type:"application/x-chess-pgn"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="openchess-personal-games.pgn";a.click();URL.revokeObjectURL(url);});
+document.getElementById("clearPersonalGames").addEventListener("click",()=>{if(!confirm("Clear the completed-game record stored only in this browser? This cannot be undone."))return;try{localStorage.removeItem(PERSONAL_GAMES_KEY);}catch(_){}lastSavedGameSignature="";renderPersonalProgress();});
+const originalUpdateStatus=updateStatus;updateStatus=function(){trackFinishedGame();originalUpdateStatus();};
+const originalRestartClick=restartBtn.onclick;restartBtn.addEventListener("click",()=>{lastSavedGameSignature="";});
+humanColorSelect.addEventListener("change",()=>{lastSavedGameSignature="";});
+updateOpponentLabel();renderPersonalProgress();loadKnowledgeBase();renderBoard();startEngine();
+})();
+</script>
+</body></html>
