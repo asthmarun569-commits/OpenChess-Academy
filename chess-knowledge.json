@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": null,
+  "updateStatus": "awaiting_first_run",
+  "sources": [
+    {
+      "name": "Lichess Masters Opening Explorer",
+      "url": "https://explorer.lichess.ovh/masters"
+    },
+    {
+      "name": "Lichess Daily Puzzle API",
+      "url": "https://lichess.org/api/puzzle/daily"
+    },
+    {
+      "name": "Lichess API documentation",
+      "url": "https://lichess.org/api"
+    }
+  ],
+  "positions": [],
+  "puzzle": null,
+  "changes": [
+    "Waiting for the first successful scheduled update."
+  ],
+  "failures": [],
+  "history": [],
+  "limitations": [
+    "Opening statistics describe sampled master games and do not establish a best move.",
+    "A daily data refresh does not modify or retrain Echo Bot's search/evaluation code.",
+    "Personal game records are stored only in each user's browser unless explicitly exported."
+  ]
+}
