@@ -1,0 +1,147 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OpenChess Academy — Rule Tests</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      max-width: 760px;
+      margin: 30px auto;
+      padding: 16px;
+      background: #101820;
+      color: #f5f7fa;
+    }
+    li { margin: 12px 0; overflow-wrap: anywhere; }
+    .pass { color: #86efac; }
+    .fail { color: #fca5a5; }
+    #summary { font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h1>OpenChess Academy</h1>
+  <h2>Extended Chess Rule Tests</h2>
+  <p id="summary">Running tests…</p>
+  <ol id="results"></ol>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+  <script>
+    const results = document.getElementById("results");
+    const summary = document.getElementById("summary");
+    let passed = 0;
+    let failed = 0;
+
+    function test(name, check) {
+      const item = document.createElement("li");
+      try {
+        if (!check()) throw new Error("Expected result was not met.");
+        item.textContent = "PASS — " + name;
+        item.className = "pass";
+        passed++;
+      } catch (error) {
+        item.textContent = "FAIL — " + name + ": " + error.message;
+        item.className = "fail";
+        failed++;
+      }
+      results.appendChild(item);
+    }
+
+    function play(game, moves) {
+      for (const [from, to] of moves) {
+        if (!game.move({ from, to })) {
+          throw new Error("Could not play " + from + " to " + to);
+        }
+      }
+      return game;
+    }
+
+    if (typeof Chess === "undefined") {
+      summary.textContent =
+        "Chess library failed to load. Check your internet connection.";
+    } else {
+      test("Initial position has 20 legal moves", () =>
+        new Chess().moves().length === 20
+      );
+
+      test("Illegal pawn jump is rejected", () => {
+        const g = new Chess();
+        return g.move({ from: "e2", to: "e5" }) === null;
+      });
+
+      test("Kingside castling moves king and rook", () => {
+        const g = play(new Chess(), [
+          ["e2","e4"],["e7","e5"],
+          ["g1","f3"],["b8","c6"],
+          ["f1","c4"],["g8","f6"]
+        ]);
+        const m = g.move({ from: "e1", to: "g1" });
+        return m !== null &&
+          g.get("g1").type === "k" &&
+          g.get("f1").type === "r";
+      });
+
+      test("En passant captures the correct pawn", () => {
+        const g = play(new Chess(), [
+          ["e2","e4"],["a7","a6"],
+          ["e4","e5"],["d7","d5"]
+        ]);
+        const m = g.move({ from: "e5", to: "d6" });
+        return m !== null && m.flags.includes("e") &&
+          g.get("d6").type === "p" && g.get("d5") === null;
+      });
+
+      test("Fool's Mate is detected as checkmate", () => {
+        const g = play(new Chess(), [
+          ["f2","f3"],["e7","e5"],
+          ["g2","g4"],["d8","h4"]
+        ]);
+        return g.in_checkmate();
+      });
+
+      for (const piece of ["q", "r", "b", "n"]) {
+        test("Promotion to " + ({
+          q:"queen", r:"rook", b:"bishop", n:"knight"
+        })[piece], () => {
+          const g = new Chess("4k3/P7/8/8/8/8/8/4K3 w - - 0 1");
+          const m = g.move({
+            from: "a7", to: "a8", promotion: piece
+          });
+          return m !== null && g.get("a8").type === piece;
+        });
+      }
+
+      test("Stalemate is detected", () => {
+        const g = new Chess("7k/5K2/6Q1/8/8/8/8/8 b - - 0 1");
+        return g.in_stalemate() && g.in_draw();
+      });
+
+      test("Insufficient material is detected", () => {
+        const g = new Chess("4k3/8/8/8/8/8/8/4K3 w - - 0 1");
+        return g.insufficient_material() && g.in_draw();
+      });
+
+      test("Threefold repetition is detected", () => {
+        const g = new Chess();
+        play(g, [
+          ["g1","f3"],["g8","f6"],
+          ["f3","g1"],["f6","g8"],
+          ["g1","f3"],["g8","f6"],
+          ["f3","g1"],["f6","g8"]
+        ]);
+        return g.in_threefold_repetition();
+      });
+
+      test("Fifty-move rule draw is detected", () => {
+        const g = new Chess("4k1n1/8/8/8/8/8/8/4K1N1 w - - 99 51");
+        const m = g.move({ from: "g1", to: "f3" });
+        return m !== null && g.in_draw();
+      });
+
+      summary.textContent = `${passed} passed; ${failed} failed.`;
+      summary.style.color = failed === 0 ? "#86efac" : "#fca5a5";
+    }
+  </script>
+</body>
+</html>
